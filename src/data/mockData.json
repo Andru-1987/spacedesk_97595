@@ -1,0 +1,78 @@
+{
+  "tenants": [
+    {
+      "id": "t1",
+      "slug": "palermo-cowork",
+      "name": "Palermo Cowork"
+    },
+    {
+      "id": "t2",
+      "slug": "rosario-hub",
+      "name": "Rosario Hub"
+    }
+  ],
+  "users": [
+    { "id": "su1", "tenantId": null, "name": "Super Admin", "email": "super@spacedesk.com", "password": "password123", "role": "superuser" },
+    { "id": "u1", "tenantId": "t1", "name": "Owner Palermo", "email": "owner@palermo.com", "password": "password123", "role": "owner" },
+    { "id": "u2", "tenantId": "t1", "name": "Admin Palermo", "email": "admin@palermo.com", "password": "password123", "role": "admin" },
+    { "id": "u3", "tenantId": "t1", "name": "Member One", "email": "member1@palermo.com", "password": "password123", "role": "member" },
+    { "id": "u4", "tenantId": "t1", "name": "Member Two", "email": "member2@palermo.com", "password": "password123", "role": "member" },
+    { "id": "u5", "tenantId": "t1", "name": "Member Three", "email": "member3@palermo.com", "password": "password123", "role": "member" },
+    { "id": "u6", "tenantId": "t1", "name": "Member Four", "email": "member4@palermo.com", "password": "password123", "role": "member" },
+    { "id": "u7", "tenantId": "t2", "name": "Owner Rosario", "email": "owner@rosario.com", "password": "password123", "role": "owner" },
+    { "id": "u8", "tenantId": "t2", "name": "Admin Rosario", "email": "admin@rosario.com", "password": "password123", "role": "admin" },
+    { "id": "u9", "tenantId": "t2", "name": "Member Five", "email": "member5@rosario.com", "password": "password123", "role": "member" },
+    { "id": "u10", "tenantId": "t2", "name": "Member Six", "email": "member6@rosario.com", "password": "password123", "role": "member" },
+    { "id": "u11", "tenantId": "t2", "name": "Member Seven", "email": "member7@rosario.com", "password": "password123", "role": "member" },
+    { "id": "u12", "tenantId": "t2", "name": "Member Eight", "email": "member8@rosario.com", "password": "password123", "role": "member" }
+  ],
+  "spaces": [
+    { "id": "s1", "tenantId": "t1", "name": "Meeting Room A", "type": "meeting_room", "capacity": 6, "pricing": 20, "status": "active" },
+    { "id": "s2", "tenantId": "t1", "name": "Meeting Room B", "type": "meeting_room", "capacity": 10, "pricing": 30, "status": "active" },
+    { "id": "s3", "tenantId": "t1", "name": "Desk 1", "type": "desk", "capacity": 1, "pricing": 10, "status": "active" },
+    { "id": "s4", "tenantId": "t1", "name": "Desk 2", "type": "desk", "capacity": 1, "pricing": 10, "status": "active" },
+    { "id": "s5", "tenantId": "t1", "name": "Desk 3", "type": "desk", "capacity": 1, "pricing": 10, "status": "active" },
+    { "id": "s6", "tenantId": "t1", "name": "Desk 4", "type": "desk", "capacity": 1, "pricing": 10, "status": "active" },
+    { "id": "s7", "tenantId": "t1", "name": "Private Office 1", "type": "office", "capacity": 4, "pricing": 100, "status": "active" },
+    { "id": "s8", "tenantId": "t2", "name": "Sala Norte", "type": "meeting_room", "capacity": 8, "pricing": 25, "status": "active" },
+    { "id": "s9", "tenantId": "t2", "name": "Sala Sur", "type": "meeting_room", "capacity": 4, "pricing": 15, "status": "active" },
+    { "id": "s10", "tenantId": "t2", "name": "Escritorio A", "type": "desk", "capacity": 1, "pricing": 12, "status": "active" },
+    { "id": "s11", "tenantId": "t2", "name": "Escritorio B", "type": "desk", "capacity": 1, "pricing": 12, "status": "active" },
+    { "id": "s12", "tenantId": "t2", "name": "Escritorio C", "type": "desk", "capacity": 1, "pricing": 12, "status": "active" },
+    { "id": "s13", "tenantId": "t2", "name": "Escritorio D", "type": "desk", "capacity": 1, "pricing": 12, "status": "active" },
+    { "id": "s14", "tenantId": "t2", "name": "Oficina Principal", "type": "office", "capacity": 6, "pricing": 150, "status": "active" }
+  ],
+  "plans": [
+    { "id": "p1", "tenantId": "t1", "name": "Flexible", "pricing": 100, "roomCredits": 5, "accessHours": "9-18" },
+    { "id": "p2", "tenantId": "t1", "name": "Fixed Desk", "pricing": 200, "roomCredits": 10, "accessHours": "24/7" },
+    { "id": "p3", "tenantId": "t1", "name": "Private Office", "pricing": 500, "roomCredits": 20, "accessHours": "24/7" },
+    { "id": "p4", "tenantId": "t2", "name": "Flexible", "pricing": 90, "roomCredits": 4, "accessHours": "9-18" },
+    { "id": "p5", "tenantId": "t2", "name": "Fixed Desk", "pricing": 180, "roomCredits": 8, "accessHours": "24/7" },
+    { "id": "p6", "tenantId": "t2", "name": "Private Office", "pricing": 450, "roomCredits": 15, "accessHours": "24/7" }
+  ],
+  "memberships": [
+    { "id": "m1", "userId": "u3", "planId": "p1", "status": "active", "startDate": "2024-01-01", "endDate": "2024-12-31" },
+    { "id": "m2", "userId": "u4", "planId": "p2", "status": "active", "startDate": "2024-02-01", "endDate": "2024-12-31" },
+    { "id": "m3", "userId": "u5", "planId": "p3", "status": "expired", "startDate": "2023-01-01", "endDate": "2023-12-31" },
+    { "id": "m4", "userId": "u6", "planId": "p1", "status": "suspended", "startDate": "2024-03-01", "endDate": "2024-12-31" },
+    { "id": "m5", "userId": "u9", "planId": "p4", "status": "active", "startDate": "2024-01-01", "endDate": "2024-12-31" },
+    { "id": "m6", "userId": "u10", "planId": "p5", "status": "active", "startDate": "2024-02-01", "endDate": "2024-12-31" },
+    { "id": "m7", "userId": "u11", "planId": "p6", "status": "expired", "startDate": "2023-01-01", "endDate": "2023-12-31" },
+    { "id": "m8", "userId": "u12", "planId": "p4", "status": "suspended", "startDate": "2024-03-01", "endDate": "2024-12-31" }
+  ],
+  "reservations": [
+    { "id": "r1", "tenantId": "t1", "userId": "u3", "spaceId": "s1", "date": "2024-05-15", "startTime": "10:00", "endTime": "12:00", "status": "confirmed" },
+    { "id": "r2", "tenantId": "t1", "userId": "u4", "spaceId": "s2", "date": "2024-05-16", "startTime": "14:00", "endTime": "16:00", "status": "confirmed" },
+    { "id": "r3", "tenantId": "t1", "userId": "u3", "spaceId": "s3", "date": "2024-05-17", "startTime": "09:00", "endTime": "18:00", "status": "cancelled" },
+    { "id": "r4", "tenantId": "t2", "userId": "u9", "spaceId": "s8", "date": "2024-05-15", "startTime": "11:00", "endTime": "13:00", "status": "confirmed" },
+    { "id": "r5", "tenantId": "t2", "userId": "u10", "spaceId": "s9", "date": "2024-05-16", "startTime": "15:00", "endTime": "17:00", "status": "confirmed" }
+  ],
+  "invoices": [
+    { "id": "i1", "tenantId": "t1", "userId": "u3", "amount": 100, "status": "paid", "date": "2024-04-01", "dueDate": "2024-04-10" },
+    { "id": "i2", "tenantId": "t1", "userId": "u3", "amount": 100, "status": "pending", "date": "2024-05-01", "dueDate": "2024-05-10" },
+    { "id": "i3", "tenantId": "t1", "userId": "u4", "amount": 200, "status": "paid", "date": "2024-04-01", "dueDate": "2024-04-10" },
+    { "id": "i4", "tenantId": "t1", "userId": "u4", "amount": 200, "status": "overdue", "date": "2024-05-01", "dueDate": "2024-05-10" },
+    { "id": "i5", "tenantId": "t2", "userId": "u9", "amount": 90, "status": "paid", "date": "2024-04-01", "dueDate": "2024-04-10" },
+    { "id": "i6", "tenantId": "t2", "userId": "u9", "amount": 90, "status": "pending", "date": "2024-05-01", "dueDate": "2024-05-10" }
+  ]
+}
