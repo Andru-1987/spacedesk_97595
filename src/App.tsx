@@ -5,6 +5,8 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import React, { useEffect, useState } from 'react';
+import { supabase } from './lib/supabase';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -38,6 +40,48 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
 };
 
 export default function App() {
+  const { setAuth, user } = useAuthStore();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    // Restore session on page load
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*, tenant:tenants(slug)')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          setAuth({
+            id: session.user.id,
+            tenantId: profile.tenant_id,
+            name: profile.full_name || session.user.email || 'User',
+            email: session.user.email || '',
+            role: profile.role as 'owner' | 'admin' | 'member' | 'superuser'
+          }, profile.tenant?.slug || 'default');
+        }
+      }
+      setIsInitializing(false);
+    };
+
+    initSession();
+
+    // Listen for auth changes (login/logout from other tabs, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setAuth(null, null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isInitializing) {
+    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+  }
   return (
     <Router>
       <Toaster position="top-right" />

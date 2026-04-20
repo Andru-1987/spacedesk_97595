@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Button } from '../components/ui/button';
@@ -13,7 +13,8 @@ export default function Admins() {
   const { user } = useAuthStore();
   const tenantId = user?.tenantId || '';
   
-  const [admins, setAdmins] = useState(mockService.getUsers(tenantId).filter(u => u.role === 'admin'));
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newAdmin, setNewAdmin] = useState({
@@ -22,30 +23,60 @@ export default function Admins() {
     password: ''
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'admin');
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setAdmins(data || []);
+      }
+      setIsLoading(false);
+    };
+    if (tenantId) fetchAdmins();
+  }, [tenantId]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
       toast.error('Please fill all fields');
       return;
     }
     
-    // Check if email exists
-    if (mockService.getUserByEmail(newAdmin.email)) {
-      toast.error('Email already in use');
+    // Create admin user via Supabase Auth signup with admin role
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: newAdmin.email,
+      password: newAdmin.password,
+      options: {
+        data: {
+          tenant_id: tenantId,
+          full_name: newAdmin.name,
+          role: 'admin'
+        }
+      }
+    });
+
+    if (error) {
+      toast.error(error.message);
       return;
     }
+
+    if (authData.user) {
+      // The trigger will create the profile automatically
+      setAdmins([...admins, { id: authData.user.id, full_name: newAdmin.name, role: 'admin', created_at: new Date().toISOString() }]);
+    }
     
-    const created = mockService.addUser({
-      ...newAdmin,
-      tenantId,
-      role: 'admin'
-    });
-    
-    setAdmins([...admins, created]);
     setIsNewOpen(false);
     toast.success('Admin created successfully');
     setNewAdmin({ name: '', email: '', password: '' });
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -55,8 +86,8 @@ export default function Admins() {
           <p className="text-slate-500">Manage administrators for your coworking space.</p>
         </div>
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-          <DialogTrigger render={<Button />}>
-            Add Admin
+          <DialogTrigger asChild>
+            <Button>Add Admin</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -90,14 +121,14 @@ export default function Admins() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Joined</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {admins.map(admin => (
                 <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.name}</TableCell>
-                  <TableCell>{admin.email}</TableCell>
+                  <TableCell className="font-medium">{admin.full_name}</TableCell>
+                  <TableCell>{new Date(admin.created_at).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
               {admins.length === 0 && (

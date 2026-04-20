@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
@@ -14,38 +14,101 @@ import { toast } from 'sonner';
 export default function Reservations() {
   const { user } = useAuthStore();
   const tenantId = user?.tenantId || '';
-  
-  const [reservations, setReservations] = useState(mockService.getReservations(tenantId));
-  const spaces = mockService.getSpaces(tenantId);
-  const members = mockService.getUsers(tenantId).filter(u => u.role === 'member');
+  const isOwnerAdmin = ['owner', 'admin'].includes(user?.role || '');
+
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newRes, setNewRes] = useState({
-    userId: '',
+    userId: user?.role === 'member' ? user.id : '',
     spaceId: '',
     date: '',
     startTime: '',
     endTime: ''
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  const fetchData = async () => {
+    try {
+      const [resData, spacesData, membersData] = await Promise.all([
+        supabase.from('reservations').select('*, profiles(full_name), spaces(name)'),
+        supabase.from('spaces').select('*').eq('status', 'active'),
+        supabase.from('profiles').select('*').eq('role', 'member')
+      ]);
+
+      if (resData.data) setReservations(resData.data);
+      if (spacesData.data) setSpaces(spacesData.data);
+      if (membersData.data) setMembers(membersData.data);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to fetch data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!tenantId) return;
+    
+    fetchData();
+
+    // Supabase Realtime Subscription
+    const subscription = supabase
+      .channel('reservations_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+        // Al detectar un cambio (INSERT, UPDATE), refetch de datos
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [tenantId]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRes.userId || !newRes.spaceId || !newRes.date || !newRes.startTime || !newRes.endTime) {
       toast.error('Please fill all fields');
       return;
     }
     
-    const created = mockService.addReservation({
-      tenantId,
-      ...newRes,
+    const { error } = await supabase.from('reservations').insert([{
+      tenant_id: tenantId,
+      user_id: newRes.userId,
+      space_id: newRes.spaceId,
+      date: newRes.date,
+      start_time: newRes.startTime + ":00", 
+      end_time: newRes.endTime + ":00",
       status: 'confirmed'
-    });
-    
-    setReservations([...reservations, created]);
+    }]);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     setIsNewOpen(false);
     toast.success('Reservation created successfully');
-    setNewRes({ userId: '', spaceId: '', date: '', startTime: '', endTime: '' });
+    setNewRes({ userId: user?.role === 'member' ? user.id : '', spaceId: '', date: '', startTime: '', endTime: '' });
   };
+
+  const handleCancel = async (id: string) => {
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: 'cancelled' })
+      .eq('id', id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Reservation cancelled');
+    }
+  };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -55,29 +118,33 @@ export default function Reservations() {
           <p className="text-slate-500">Manage space bookings.</p>
         </div>
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-          <DialogTrigger render={<Button />}>
-            New Reservation
+          <DialogTrigger asChild>
+            <Button>New Reservation</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Reservation</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Member</Label>
-                <Select value={newRes.userId} onValueChange={(v) => setNewRes({...newRes, userId: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select member" /></SelectTrigger>
-                  <SelectContent>
-                    {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              
+              {isOwnerAdmin && (
+                <div className="space-y-2">
+                  <Label>Member</Label>
+                  <Select value={newRes.userId} onValueChange={(v) => setNewRes({...newRes, userId: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select member" /></SelectTrigger>
+                    <SelectContent>
+                      {members.map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Space</Label>
                 <Select value={newRes.spaceId} onValueChange={(v) => setNewRes({...newRes, spaceId: v})}>
                   <SelectTrigger><SelectValue placeholder="Select space" /></SelectTrigger>
                   <SelectContent>
-                    {spaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    {spaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.type})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -114,26 +181,30 @@ export default function Reservations() {
                 <TableHead>Member</TableHead>
                 <TableHead>Space</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reservations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((res) => {
-                const member = members.find(m => m.id === res.userId);
-                const space = spaces.find(s => s.id === res.spaceId);
-                return (
-                  <TableRow key={res.id}>
-                    <TableCell>{res.date}</TableCell>
-                    <TableCell>{res.startTime} - {res.endTime}</TableCell>
-                    <TableCell>{member?.name || 'Unknown'}</TableCell>
-                    <TableCell>{space?.name || 'Unknown'}</TableCell>
-                    <TableCell>
-                      <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'}>
-                        {res.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {reservations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((res) => (
+                <TableRow key={res.id}>
+                  <TableCell>{res.date}</TableCell>
+                  <TableCell>{res.start_time.slice(0,5)} - {res.end_time.slice(0,5)}</TableCell>
+                  <TableCell>{res.profiles?.full_name || 'Unknown'}</TableCell>
+                  <TableCell>{res.spaces?.name || 'Unknown'}</TableCell>
+                  <TableCell>
+                    <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                      {res.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {res.status === 'confirmed' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleCancel(res.id)} className="text-red-500">
+                        Cancel
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
@@ -16,13 +16,11 @@ export default function Portal() {
   const tenantId = user?.tenantId || '';
   const userId = user?.id || '';
   
-  const membership = mockService.getMembershipByUser(userId);
-  const plan = membership ? mockService.getPlans(tenantId).find(p => p.id === membership.planId) : null;
-  
-  const [reservations, setReservations] = useState(
-    mockService.getReservations(tenantId).filter(r => r.userId === userId)
-  );
-  const spaces = mockService.getSpaces(tenantId);
+  const [membership, setMembership] = useState<any>(null);
+  const [plan, setPlan] = useState<any>(null);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newRes, setNewRes] = useState({
@@ -32,25 +30,72 @@ export default function Portal() {
     endTime: ''
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [membershipRes, reservationsRes, spacesRes] = await Promise.all([
+        supabase.from('memberships').select('*, plans(*)').eq('user_id', userId).maybeSingle(),
+        supabase.from('reservations').select('*, spaces(name)').eq('user_id', userId).order('date', { ascending: false }),
+        supabase.from('spaces').select('*').eq('status', 'active')
+      ]);
+
+      if (membershipRes.data) {
+        setMembership(membershipRes.data);
+        setPlan(membershipRes.data.plans);
+      }
+      if (reservationsRes.data) setReservations(reservationsRes.data);
+      if (spacesRes.data) setSpaces(spacesRes.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) fetchData();
+
+    // Realtime for own reservations
+    const subscription = supabase
+      .channel('portal_reservations')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations', filter: `user_id=eq.${userId}` }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [userId]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRes.spaceId || !newRes.date || !newRes.startTime || !newRes.endTime) {
       toast.error('Please fill all fields');
       return;
     }
     
-    const created = mockService.addReservation({
-      tenantId,
-      userId,
-      ...newRes,
+    const { error } = await supabase.from('reservations').insert([{
+      tenant_id: tenantId,
+      user_id: userId,
+      space_id: newRes.spaceId,
+      date: newRes.date,
+      start_time: newRes.startTime + ":00",
+      end_time: newRes.endTime + ":00",
       status: 'confirmed'
-    });
+    }]);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     
-    setReservations([...reservations, created]);
     setIsNewOpen(false);
     toast.success('Reservation created successfully');
     setNewRes({ spaceId: '', date: '', startTime: '', endTime: '' });
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -74,9 +119,9 @@ export default function Portal() {
                   </Badge>
                 </div>
                 <div className="space-y-2 text-sm text-slate-600">
-                  <p>Access: {plan.accessHours}</p>
-                  <p>Room Credits: {plan.roomCredits} / month</p>
-                  <p>Valid until: {membership?.endDate}</p>
+                  <p>Access: {plan.access_hours}</p>
+                  <p>Room Credits: {plan.room_credits} / month</p>
+                  <p>Valid until: {membership?.end_date}</p>
                 </div>
               </>
             ) : (
@@ -89,8 +134,8 @@ export default function Portal() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Quick Book</CardTitle>
             <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-              <DialogTrigger render={<Button size="sm" />}>
-                Book Space
+              <DialogTrigger asChild>
+                <Button size="sm">Book Space</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -126,20 +171,20 @@ export default function Portal() {
             </Dialog>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500 mb-4">You have upcoming reservations.</p>
+            <p className="text-sm text-slate-500 mb-4">Your upcoming reservations.</p>
             <div className="space-y-3">
-              {reservations.filter(r => new Date(r.date) >= new Date()).slice(0, 3).map(res => {
-                const space = spaces.find(s => s.id === res.spaceId);
-                return (
-                  <div key={res.id} className="flex justify-between items-center text-sm border-b pb-2">
-                    <div>
-                      <p className="font-medium">{space?.name}</p>
-                      <p className="text-slate-500">{res.date} ({res.startTime} - {res.endTime})</p>
-                    </div>
-                    <Badge variant="outline">{res.status}</Badge>
+              {reservations.filter(r => new Date(r.date) >= new Date()).slice(0, 3).map(res => (
+                <div key={res.id} className="flex justify-between items-center text-sm border-b pb-2">
+                  <div>
+                    <p className="font-medium">{res.spaces?.name}</p>
+                    <p className="text-slate-500">{res.date} ({res.start_time?.slice(0,5)} - {res.end_time?.slice(0,5)})</p>
                   </div>
-                );
-              })}
+                  <Badge variant="outline">{res.status}</Badge>
+                </div>
+              ))}
+              {reservations.filter(r => new Date(r.date) >= new Date()).length === 0 && (
+                <p className="text-sm text-slate-400">No upcoming reservations.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -160,21 +205,18 @@ export default function Portal() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reservations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((res) => {
-                const space = spaces.find(s => s.id === res.spaceId);
-                return (
-                  <TableRow key={res.id}>
-                    <TableCell>{res.date}</TableCell>
-                    <TableCell>{res.startTime} - {res.endTime}</TableCell>
-                    <TableCell>{space?.name || 'Unknown'}</TableCell>
-                    <TableCell>
-                      <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'}>
-                        {res.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {reservations.map((res) => (
+                <TableRow key={res.id}>
+                  <TableCell>{res.date}</TableCell>
+                  <TableCell>{res.start_time?.slice(0,5)} - {res.end_time?.slice(0,5)}</TableCell>
+                  <TableCell>{res.spaces?.name || 'Unknown'}</TableCell>
+                  <TableCell>
+                    <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                      {res.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
               {reservations.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-6 text-slate-500">

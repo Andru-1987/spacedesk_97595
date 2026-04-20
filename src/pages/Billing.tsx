@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
@@ -9,22 +9,47 @@ import { toast } from 'sonner';
 
 export default function Billing() {
   const { user } = useAuthStore();
-  const tenantId = user?.tenantId || '';
-  
-  const [invoices, setInvoices] = useState(mockService.getInvoices(tenantId));
-  const members = mockService.getUsers(tenantId).filter(u => u.role === 'member');
-  
-  const totalBilled = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalPending = invoices.filter(i => i.status !== 'paid').reduce((sum, inv) => sum + inv.amount, 0);
-  const membersInArrears = new Set(invoices.filter(i => i.status === 'overdue').map(i => i.userId)).size;
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleMarkPaid = (id: string) => {
-    const updated = mockService.updateInvoiceStatus(id, 'paid');
-    if (updated) {
-      setInvoices(invoices.map(i => i.id === id ? updated : i));
-      toast.success('Invoice marked as paid');
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*, profiles(full_name)')
+        .order('date', { ascending: false });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setInvoices(data || []);
+      }
+      setIsLoading(false);
+    };
+    if (user?.tenantId) fetchInvoices();
+  }, [user]);
+
+  const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const totalPending = invoices.filter(i => i.status !== 'paid').reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const membersInArrears = new Set(invoices.filter(i => i.status === 'overdue').map(i => i.user_id)).size;
+
+  const handleMarkPaid = async (id: string) => {
+    const { error } = await supabase
+      .from('invoices')
+      .update({ status: 'paid' })
+      .eq('id', id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+
+    setInvoices(invoices.map(i => i.id === id ? { ...i, status: 'paid' } : i));
+    toast.success('Invoice marked as paid');
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -77,32 +102,36 @@ export default function Billing() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((invoice) => {
-                const member = members.find(m => m.id === invoice.userId);
-                return (
-                  <TableRow key={invoice.id}>
-                    <TableCell>{invoice.date}</TableCell>
-                    <TableCell className="font-medium">{member?.name || 'Unknown'}</TableCell>
-                    <TableCell>${invoice.amount}</TableCell>
-                    <TableCell>{invoice.dueDate}</TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        invoice.status === 'paid' ? 'default' : 
-                        invoice.status === 'overdue' ? 'destructive' : 'secondary'
-                      }>
-                        {invoice.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {invoice.status !== 'paid' && (
-                        <Button size="sm" variant="outline" onClick={() => handleMarkPaid(invoice.id)}>
-                          Mark Paid
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>{invoice.date}</TableCell>
+                  <TableCell className="font-medium">{invoice.profiles?.full_name || 'Unknown'}</TableCell>
+                  <TableCell>${invoice.amount}</TableCell>
+                  <TableCell>{invoice.due_date}</TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      invoice.status === 'paid' ? 'default' : 
+                      invoice.status === 'overdue' ? 'destructive' : 'secondary'
+                    }>
+                      {invoice.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {invoice.status !== 'paid' && (
+                      <Button size="sm" variant="outline" onClick={() => handleMarkPaid(invoice.id)}>
+                        Mark Paid
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {invoices.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-6 text-slate-500">
+                    No invoices found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,13 +1,30 @@
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { toast } from 'sonner';
 
 export default function Memberships() {
   const { user } = useAuthStore();
-  const tenantId = user?.tenantId || '';
-  
-  const plans = mockService.getPlans(tenantId);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase.from('plans').select('*');
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setPlans(data || []);
+      }
+      setIsLoading(false);
+    };
+    if (user?.tenantId) fetchPlans();
+  }, [user]);
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -29,16 +46,19 @@ export default function Memberships() {
               <div className="text-3xl font-bold">${plan.pricing}<span className="text-sm font-normal text-slate-500">/mo</span></div>
               <ul className="space-y-2 text-sm text-slate-600">
                 <li className="flex items-center">
-                  <span className="mr-2">✓</span> {plan.roomCredits} room credits/mo
+                  <span className="mr-2">✓</span> {plan.room_credits} room credits/mo
                 </li>
                 <li className="flex items-center">
-                  <span className="mr-2">✓</span> Access: {plan.accessHours}
+                  <span className="mr-2">✓</span> Access: {plan.access_hours}
                 </li>
               </ul>
               <Button variant="outline" className="w-full">Edit Plan</Button>
             </CardContent>
           </Card>
         ))}
+        {plans.length === 0 && (
+          <p className="text-slate-500 col-span-3 text-center py-8">No plans created yet.</p>
+        )}
       </div>
     </div>
   );

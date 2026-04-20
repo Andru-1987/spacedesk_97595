@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { mockService } from '../lib/mockService';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -21,7 +22,18 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function Register() {
   const navigate = useNavigate();
-  const tenants = mockService.getTenants();
+  const [tenants, setTenants] = useState<{id: string, name: string}[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Para que un usuario nuevo vea los coworking spaces debe tener permisos de lectura anónima sobre tenants.
+    // De lo contrario, este array retornará vacio por RLS.
+    const fetchTenants = async () => {
+      const { data } = await supabase.from('tenants').select('id, name');
+      if (data) setTenants(data);
+    };
+    fetchTenants();
+  }, []);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -33,21 +45,28 @@ export default function Register() {
     }
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    const existingUser = mockService.getUserByEmail(data.email);
+  const onSubmit = async (data: RegisterFormValues) => {
+    setIsLoading(true);
     
-    if (existingUser) {
-      toast.error('Email already in use');
-      return;
-    }
-
-    mockService.addUser({
-      name: data.name,
+    // Auth Signup con inyección en options.data para que el Trigger los capture y ponga en Profiles
+    const { error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
-      tenantId: data.tenantId,
-      role: 'member'
+      options: {
+        data: {
+          tenant_id: data.tenantId,
+          full_name: data.name,
+          role: 'member'
+        }
+      }
     });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
 
     toast.success('Registration successful! Please login.');
     navigate('/login');
@@ -97,7 +116,7 @@ export default function Register() {
               <Label htmlFor="tenantId">Coworking Space</Label>
               <Select onValueChange={(value) => setValue('tenantId', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a space" />
+                  <SelectValue placeholder={tenants.length === 0 ? "Loading spaces..." : "Select a space"} />
                 </SelectTrigger>
                 <SelectContent>
                   {tenants.map(t => (
@@ -109,9 +128,11 @@ export default function Register() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">Register</Button>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Registering..." : "Register"}
+            </Button>
             <div className="text-sm text-center text-slate-500">
-              Already have an account? <Button variant="link" className="p-0" onClick={() => navigate('/login')}>Login</Button>
+              Already have an account? <Button variant="link" className="p-0" onClick={() => navigate('/login')} type="button">Login</Button>
             </div>
           </CardFooter>
         </form>

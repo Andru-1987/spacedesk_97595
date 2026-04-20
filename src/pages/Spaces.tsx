@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { mockService } from '../lib/mockService';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -13,9 +13,11 @@ import { toast } from 'sonner';
 export default function Spaces() {
   const { user } = useAuthStore();
   const tenantId = user?.tenantId || '';
-  const isOwner = user?.role === 'owner';
+  const isOwnerAdmin = ['owner', 'admin'].includes(user?.role || '');
   
-  const [spaces, setSpaces] = useState(mockService.getSpaces(tenantId));
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newSpace, setNewSpace] = useState({
     name: '',
@@ -25,25 +27,49 @@ export default function Spaces() {
     status: 'active'
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  const fetchSpaces = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase.from('spaces').select('*');
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setSpaces(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (tenantId) fetchSpaces();
+  }, [tenantId]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSpace.name) {
       toast.error('Please enter a name');
       return;
     }
     
-    const created = mockService.addSpace({
-      tenantId,
-      ...newSpace,
+    const { data, error } = await supabase.from('spaces').insert([{
+      tenant_id: tenantId,
+      name: newSpace.name,
+      type: newSpace.type,
       capacity: Number(newSpace.capacity),
-      pricing: Number(newSpace.pricing)
-    });
-    
-    setSpaces([...spaces, created]);
+      pricing: Number(newSpace.pricing),
+      status: newSpace.status
+    }]).select();
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    if (data) setSpaces([...spaces, data[0]]);
     setIsNewOpen(false);
     toast.success('Space created successfully');
     setNewSpace({ name: '', type: 'desk', capacity: 1, pricing: 0, status: 'active' });
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -52,10 +78,10 @@ export default function Spaces() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Spaces</h1>
           <p className="text-slate-500">Manage desks, offices, and meeting rooms.</p>
         </div>
-        {isOwner && (
+        {isOwnerAdmin && (
           <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-            <DialogTrigger render={<Button />}>
-              Add Space
+            <DialogTrigger asChild>
+              <Button>Add Space</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>

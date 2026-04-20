@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { mockService } from '../lib/mockService';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Button } from '../components/ui/button';
@@ -9,7 +9,8 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 
 export default function Tenants() {
-  const [tenants, setTenants] = useState(mockService.getTenants());
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newTenant, setNewTenant] = useState({
@@ -17,26 +18,50 @@ export default function Tenants() {
     slug: ''
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchTenants = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase.from('tenants').select('*');
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setTenants(data || []);
+      }
+      setIsLoading(false);
+    };
+    fetchTenants();
+  }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTenant.name || !newTenant.slug) {
       toast.error('Please enter a name and slug');
       return;
     }
     
-    // Check if slug exists
     if (tenants.some(t => t.slug === newTenant.slug)) {
       toast.error('Slug already exists');
       return;
     }
     
-    const created = mockService.addTenant(newTenant);
-    
-    setTenants([...tenants, created]);
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert([newTenant])
+      .select()
+      .single();
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setTenants([...tenants, data]);
     setIsNewOpen(false);
     toast.success('Tenant created successfully');
     setNewTenant({ name: '', slug: '' });
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -46,8 +71,8 @@ export default function Tenants() {
           <p className="text-slate-500">Manage coworking spaces across the platform.</p>
         </div>
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-          <DialogTrigger render={<Button />}>
-            Add Tenant
+          <DialogTrigger asChild>
+            <Button>Add Tenant</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
