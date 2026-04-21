@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
+import { trackEvent } from '../lib/analytics';
 
 interface User {
   id: string;
@@ -22,7 +23,15 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       tenantSlug: null,
-      setAuth: (user, tenantSlug) => set({ user, tenantSlug }),
+      setAuth: (user, tenantSlug) => {
+        set({ user, tenantSlug });
+        if (user) {
+          trackEvent('login_success', {
+            tenant_slug: tenantSlug,
+            user_role: user.role,
+          });
+        }
+      },
       logout: async () => {
         await supabase.auth.signOut();
         set({ user: null, tenantSlug: null });

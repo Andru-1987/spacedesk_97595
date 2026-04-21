@@ -10,9 +10,10 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
+import { trackEvent } from '../lib/analytics';
 
 export default function Reservations() {
-  const { user } = useAuthStore();
+  const { user, tenantSlug } = useAuthStore();
   const tenantId = user?.tenantId || '';
   const isOwnerAdmin = ['owner', 'admin'].includes(user?.role || '');
 
@@ -91,6 +92,14 @@ export default function Reservations() {
     }
 
     setIsNewOpen(false);
+    
+    const selectedSpace = spaces.find(s => s.id === newRes.spaceId);
+    trackEvent('reservation_created', {
+      tenant_slug: tenantSlug,
+      user_role: user?.role,
+      space_type: selectedSpace?.type,
+    });
+
     toast.success('Reservation created successfully');
     setNewRes({ userId: user?.role === 'member' ? user.id : '', spaceId: '', date: '', startTime: '', endTime: '' });
   };

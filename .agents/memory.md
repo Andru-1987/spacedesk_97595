@@ -19,17 +19,22 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [ ] Gestión de Membresías (Memberships) - Falta lógica de asignación y créditos.
 - [ ] Portal del Miembro (Portal) - Vista avanzada, falta integración de acciones.
 - [ ] Gestión de Admins por Tenant.
-- [ ] **Validación de PostHog MCP** (En curso - Error de Autenticación).
+- [X] **Validación de PostHog MCP** (Completado - Conexión funcional).
+- [X] **Listado de Proyectos PostHog** (Completado).
+- [X] **Instrumentación PostHog** (Completado).
 
 ## Registro de Procesos (Process Registry)
 - [2026-04-14] **INICIALIZACIÓN**: Creación de la estructura base y migración de Mock JSON a Supabase. `ESTADO: COMPLETED`.
 - [2026-04-14] **AUTH & ROUTING**: Implementación de lógica de sesión persistente y protección de rutas por roles. `ESTADO: COMPLETED`.
 - [2026-04-14] **DASHBOARD**: Visualización de métricas reales consolidadas. `ESTADO: COMPLETED`.
-- [2026-04-14] **POSTHOG MCP**: Intento de validación tras ejecución del wizard. `ESTADO: FAILED`. Motivo: Error 401 Unauthorized con el token proveído en `mcp_config.json`.
+- [2026-04-20] **POSTHOG MCP**: Verificación de conectividad. Los diagnósticos previos indicaban 401, pero se logró listar dashboards exitosamente con el token actual. `ESTADO: COMPLETED`.
+- [2026-04-20] **PROJECT LISTING**: Usuario solicita listar proyectos. Se utilizó `curl.exe` contra la API de PostHog para obtener la lista, ya que el MCP no provee una herramienta directa para esto. `ESTADO: COMPLETED`.
+- [2026-04-20] **POSTHOG INSTRUMENTATION**: Instalación de SDK, servicio de analytics con idempotencia y eventos (`login_success`, `dashboard_view`, `reservation_created`). `ESTADO: COMPLETED`.
+- [2026-04-20] **PROJECT BUILD**: Generación de la carpeta `dist` completada exitosamente mediante `vite build`. `ESTADO: COMPLETED`.
 
 ## Cicatrices (Fallos y Aprendizajes)
 - [X] **SINCRONIZACIÓN**: Se detectó que `PROJECT_DOCUMENTATION.md` aún mencionaba Mock JSON cuando la integración con Supabase ya estaba avanzada. Se actualizó el entendimiento interno.
-- [X] **MCP AUTH**: El wizard de PostHog configuró un token en `mcp_config.json` que resulta inválido al intentar conectar con `https://mcp.posthog.com/mcp`.
+- [X] **MCP AUTH**: El error 401 reportado anteriormente parece haber sido resuelto o fue transitorio, ya que las llamadas a `dashboards-get-all` son exitosas.
 
 ---
-*Ultima actualización: 2026-04-14*
+*Ultima actualización: 2026-04-20*

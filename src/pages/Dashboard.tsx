@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Users, Calendar, Building2, CreditCard } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { trackEvent } from '../lib/analytics';
 
 export default function Dashboard() {
   const { user, tenantSlug } = useAuthStore();
@@ -17,6 +18,11 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    trackEvent('dashboard_view', {
+      tenant_slug: tenantSlug,
+      user_role: user?.role,
+    });
+
     const fetchStats = async () => {
       setIsLoading(true);
       try {
