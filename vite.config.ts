@@ -18,13 +18,13 @@ export default defineConfig(({command, mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        // includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: 'SpaceDesk',
           short_name: 'SpaceDesk',
           description: 'Coworking space management',
           theme_color: '#0f172a',
-          icons: [
+          /* icons: [
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
@@ -35,7 +35,7 @@ export default defineConfig(({command, mode}) => {
               sizes: '512x512',
               type: 'image/png'
             }
-          ]
+          ] */
         }
       })
     ],

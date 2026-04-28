@@ -35,12 +35,14 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [2026-04-20] **PROJECT BUILD**: Generación de la carpeta `dist` completada exitosamente mediante `vite build`. `ESTADO: COMPLETED`.
 - [2026-04-20] **NETLIFY DEPLOY**: Creación de sitio `spacedesk-97595-app`, configuración de nombre y despliegue manual de `dist`. `ESTADO: IN_PROGRESS` (Building).
 - [2026-04-27] **GITHUB PAGES DEPLOY**: Configuración del `base` path en Vite para soportar el subdirectorio de GitHub Pages (`/spacedesk_97595/`). Creación de workflow de GitHub Actions (`deploy.yml`) para compilar y desplegar automáticamente la carpeta `dist`. `ESTADO: IN_PROGRESS` (Requiere configuración en GitHub).
+- [2026-04-27] **CI/CD ENV SECRETS**: Actualización del workflow de GitHub para leer las variables de entorno de Supabase y Posthog a través de GitHub Secrets durante la fase de Build. `ESTADO: COMPLETED`.
 
 ## Cicatrices (Fallos y Aprendizajes)
 - [X] **SINCRONIZACIÓN**: Se detectó que `PROJECT_DOCUMENTATION.md` aún mencionaba Mock JSON cuando la integración con Supabase ya estaba avanzada. Se actualizó el entendimiento interno.
 - [X] **MCP AUTH**: El error 401 reportado anteriormente parece haber sido resuelto o fue transitorio, ya que las llamadas a `dashboards-get-all` son exitosas.
 - [X] **POWERSHELL RESTRICCIONES**: Se encontró bloqueo de ejecución de scripts .ps1. Se resolvió llamando a `cmd /c npm run build` para generar el artefacto de producción.
 - [X] **VITE BASE PATH**: Al setear `base: '/spacedesk_97595/'` en Vite, el servidor local de desarrollo fallaba (error 404 en `main.tsx`). Se solucionó haciendo que el `base` sea condicional (`command === 'build' ? '/spacedesk_97595/' : '/'`).
+- [X] **PWA ICONS 404**: Se presentaban errores en producción por falta de archivos (`favicon.ico`, `pwa-192x192.png`). Eran referenciados por `vite-plugin-pwa` pero no existían en `public/`. Se comentaron en `vite.config.ts` temporalmente.
 
 ---
 *Ultima actualización: 2026-04-27*
