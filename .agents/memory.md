@@ -40,6 +40,7 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [X] **SINCRONIZACIÓN**: Se detectó que `PROJECT_DOCUMENTATION.md` aún mencionaba Mock JSON cuando la integración con Supabase ya estaba avanzada. Se actualizó el entendimiento interno.
 - [X] **MCP AUTH**: El error 401 reportado anteriormente parece haber sido resuelto o fue transitorio, ya que las llamadas a `dashboards-get-all` son exitosas.
 - [X] **POWERSHELL RESTRICCIONES**: Se encontró bloqueo de ejecución de scripts .ps1. Se resolvió llamando a `cmd /c npm run build` para generar el artefacto de producción.
+- [X] **VITE BASE PATH**: Al setear `base: '/spacedesk_97595/'` en Vite, el servidor local de desarrollo fallaba (error 404 en `main.tsx`). Se solucionó haciendo que el `base` sea condicional (`command === 'build' ? '/spacedesk_97595/' : '/'`).
 
 ---
 *Ultima actualización: 2026-04-27*
