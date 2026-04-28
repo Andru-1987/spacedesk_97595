@@ -83,7 +83,7 @@ export default function App() {
     return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
   }
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
