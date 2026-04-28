@@ -43,6 +43,7 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [X] **POWERSHELL RESTRICCIONES**: Se encontró bloqueo de ejecución de scripts .ps1. Se resolvió llamando a `cmd /c npm run build` para generar el artefacto de producción.
 - [X] **VITE BASE PATH**: Al setear `base: '/spacedesk_97595/'` en Vite, el servidor local de desarrollo fallaba (error 404 en `main.tsx`). Se solucionó haciendo que el `base` sea condicional (`command === 'build' ? '/spacedesk_97595/' : '/'`).
 - [X] **PWA ICONS 404**: Se presentaban errores en producción por falta de archivos (`favicon.ico`, `pwa-192x192.png`). Eran referenciados por `vite-plugin-pwa` pero no existían en `public/`. Se comentaron en `vite.config.ts` temporalmente.
+- [X] **REACT ROUTER BASENAME**: Al desplegar en GitHub Pages bajo `/spacedesk_97595/`, la aplicación fallaba con "No routes matched location" porque React Router no conocía el subdirectorio. Se resolvió agregando `basename={import.meta.env.BASE_URL}` en `App.tsx`.
 
 ---
 *Ultima actualización: 2026-04-27*
