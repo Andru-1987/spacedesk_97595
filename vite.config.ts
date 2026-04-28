@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/',
+    base: '/spacedesk_97595/',
     plugins: [
       react(), 
       tailwindcss(),

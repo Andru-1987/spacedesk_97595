@@ -34,6 +34,7 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [2026-04-20] **POSTHOG INSTRUMENTATION**: Instalación de SDK, servicio de analytics con idempotencia y eventos (`login_success`, `dashboard_view`, `reservation_created`). `ESTADO: COMPLETED`.
 - [2026-04-20] **PROJECT BUILD**: Generación de la carpeta `dist` completada exitosamente mediante `vite build`. `ESTADO: COMPLETED`.
 - [2026-04-20] **NETLIFY DEPLOY**: Creación de sitio `spacedesk-97595-app`, configuración de nombre y despliegue manual de `dist`. `ESTADO: IN_PROGRESS` (Building).
+- [2026-04-27] **GITHUB PAGES DEPLOY**: Configuración del `base` path en Vite para soportar el subdirectorio de GitHub Pages (`/spacedesk_97595/`). `ESTADO: COMPLETED`.
 
 ## Cicatrices (Fallos y Aprendizajes)
 - [X] **SINCRONIZACIÓN**: Se detectó que `PROJECT_DOCUMENTATION.md` aún mencionaba Mock JSON cuando la integración con Supabase ya estaba avanzada. Se actualizó el entendimiento interno.
@@ -41,5 +42,5 @@ Construir una plataforma SaaS Multi-Tenant para coworking (SpaceDesk) utilizando
 - [X] **POWERSHELL RESTRICCIONES**: Se encontró bloqueo de ejecución de scripts .ps1. Se resolvió llamando a `cmd /c npm run build` para generar el artefacto de producción.
 
 ---
-*Ultima actualización: 2026-04-20*
+*Ultima actualización: 2026-04-27*
 
